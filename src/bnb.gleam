@@ -1,8 +1,10 @@
 import data
+import gleam/io
 import gleam/list
 import gleam/option.{type Option, None, Some}
 import lustre
 import lustre/attribute
+import lustre/effect.{type Effect}
 import lustre/element.{type Element}
 import lustre/element/html
 import lustre/event
@@ -10,7 +12,7 @@ import lustre/ui
 import warband.{type Model, type Warband, Warband}
 
 pub fn main() {
-  let app = lustre.simple(init, update, view)
+  let app = lustre.application(init, update, view)
   let assert Ok(_) = lustre.start(app, "#app", Nil)
 
   Nil
@@ -28,8 +30,8 @@ type Menu {
   AddModel
 }
 
-fn init(_flags) -> State {
-  State(warband: warband.new(), menu: WarbandCreation(None))
+fn init(_flags) -> #(State, Effect(Msg)) {
+  #(State(warband: warband.new(), menu: WarbandCreation(None)), effect.none())
 }
 
 // ------------------------- UPDATE -------------------------
@@ -43,15 +45,19 @@ type Msg {
   UserStartedEditingName(index: Int)
 }
 
-fn update(state: State, msg: Msg) -> State {
+const name_input_id = "model-name-input"
+
+fn update(state: State, msg: Msg) -> #(State, Effect(Msg)) {
   let State(warband:, ..) = state
 
   case msg {
-    UserUpdatedWarbandName(new_name) ->
-      State(..state, warband: Warband(..warband, name: new_name))
-    UserClickedAddModel -> State(..state, menu: AddModel)
+    UserUpdatedWarbandName(new_name) -> #(
+      State(..state, warband: Warband(..warband, name: new_name)),
+      effect.none(),
+    )
+    UserClickedAddModel -> #(State(..state, menu: AddModel), effect.none())
 
-    UserUpdatedModelName(index:, new_name:) ->
+    UserUpdatedModelName(index:, new_name:) -> #(
       State(
         ..state,
         warband: Warband(
@@ -61,19 +67,35 @@ fn update(state: State, msg: Msg) -> State {
               warband.Model(..model, name: new_name)
             }),
         ),
-      )
-    UserAddedModel(species) ->
-      State(
-        menu: WarbandCreation(Some(warband.model_count)),
-        warband: Warband(
-          ..warband,
-          models: warband.models |> append(warband.model(species)),
-          model_count: warband.model_count + 1,
+      ),
+      effect.none(),
+    )
+    UserAddedModel(species) -> {
+      let last_model = warband.model_count
+      #(
+        State(
+          menu: WarbandCreation(Some(last_model)),
+          warband: Warband(
+            ..warband,
+            models: warband.models |> append(warband.model(species)),
+            model_count: warband.model_count + 1,
+          ),
         ),
+        effect.from(fn(dispatch) {
+          dispatch(UserStartedEditingName(last_model))
+        }),
       )
-    UserStoppedEditingName -> State(..state, menu: WarbandCreation(None))
-    UserStartedEditingName(index) ->
-      State(..state, menu: WarbandCreation(Some(index)))
+    }
+    UserStoppedEditingName -> #(
+      State(..state, menu: WarbandCreation(None)),
+      effect.none(),
+    )
+    UserStartedEditingName(index) -> #(
+      State(..state, menu: WarbandCreation(Some(index))),
+      effect.from(fn(_) {
+        request_animation_frame(fn() { focus(name_input_id) })
+      }),
+    )
   }
 }
 
@@ -97,6 +119,7 @@ fn append(to list: List(element), append value: element) -> List(element) {
 // ------------------------- VIEW -------------------------
 
 fn view(state: State) -> Element(Msg) {
+  io.debug("view")
   let styles = [#("width", "100vw"), #("height", "100vh"), #("padding", "1rem")]
   let content = case state.menu {
     AddModel -> add_model_view()
@@ -155,13 +178,22 @@ fn model_view(model: Model, index: Int, editing_name: Bool) -> Element(Msg) {
     False ->
       html.span([], [
         ui.tag([], [element.text(model.name)]),
-        ui.button([event.on_click(UserStartedEditingName(index)), attribute.style([#("font-size", "0.7em"), #("padding", "0"), #("margin", "2px")])], [
-          element.text("✏️"),
-        ]),
+        ui.button(
+          [
+            event.on_click(UserStartedEditingName(index)),
+            attribute.style([
+              #("font-size", "0.7em"),
+              #("padding", "0"),
+              #("margin", "2px"),
+            ]),
+          ],
+          [element.text("✏️")],
+        ),
       ])
     True ->
       ui.input([
         attribute.style([#("font-size", "0.7em"), #("max-width", "10em")]),
+        attribute.id(name_input_id),
         attribute.value(model.name),
         event.on_input(UserUpdatedModelName(index:, new_name: _)),
         event.on_blur(UserStoppedEditingName),
@@ -184,3 +216,9 @@ fn model_view(model: Model, index: Int, editing_name: Bool) -> Element(Msg) {
     ],
   )
 }
+
+@external(javascript, "./bnb_ffi.mjs", "focusElement")
+fn focus(id: String) -> Nil
+
+@external(javascript, "./bnb_ffi.mjs", "raf")
+fn request_animation_frame(callback: fn() -> a) -> Nil
