@@ -7,5 +7,9 @@ pub fn new() -> Warband {
 }
 
 pub type Model {
-  Model(name: String)
+  Model(name: String, species: String)
+}
+
+pub fn model(species: String) -> Model {
+  Model(name: "", species:)
 }
