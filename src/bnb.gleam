@@ -38,6 +38,7 @@ fn init(_flags) -> #(State, Effect(Msg)) {
 // ------------------------- UPDATE -------------------------
 
 type Msg {
+  DoNothing
   UserUpdatedWarbandName(new_name: String)
   UserClickedAddModel
   UserAddedModel(species: String)
@@ -55,6 +56,7 @@ fn update(state: State, msg: Msg) -> #(State, Effect(Msg)) {
   let State(warband:, ..) = state
 
   case msg {
+    DoNothing -> #(state, effect.none())
     UserUpdatedWarbandName(new_name) -> #(
       State(..state, warband: Warband(..warband, name: new_name)),
       effect.none(),
@@ -242,6 +244,12 @@ fn model_view(model: Model, index: Int, editing_name: Bool) -> Element(Msg) {
         attribute.id(name_input_id),
         attribute.value(model.name),
         event.on_input(UserUpdatedModelName(index:, new_name: _)),
+        event.on_keydown(fn(key) {
+          case key {
+            "Enter" -> UserStoppedEditingName
+            _ -> DoNothing
+          }
+        }),
         event.on_blur(UserStoppedEditingName),
       ])
   }
