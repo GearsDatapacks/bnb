@@ -19,10 +19,10 @@ pub fn new() -> Warband {
 }
 
 pub type Model {
-  Model(name: String, species: String)
+  Model(name: String, species: Species)
 }
 
-pub fn model(species: String) -> Model {
+pub fn model(species: Species) -> Model {
   Model(name: "", species:)
 }
 
@@ -52,4 +52,8 @@ pub fn allegiance_from_string(string: String) -> Result(Allegiance, Nil) {
     "Wildbeasts" -> Ok(WildBeast)
     _ -> Error(Nil)
   }
+}
+
+pub type Species {
+  Species(cost: Int, name: String)
 }

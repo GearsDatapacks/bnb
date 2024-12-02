@@ -1,4 +1,5 @@
 import data
+import gleam/dict
 import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/result
@@ -10,7 +11,7 @@ import lustre/element/html
 import lustre/event
 import lustre/ui
 import util
-import warband.{type Model, type Warband, Warband, allegiances}
+import warband.{type Model, type Warband, Warband, allegiances, type Species}
 
 pub fn main() {
   let app = lustre.application(init, update, view)
@@ -41,7 +42,7 @@ type Msg {
   DoNothing
   UserUpdatedWarbandName(new_name: String)
   UserClickedAddModel
-  UserAddedModel(species: String)
+  UserAddedModel(species: Species)
   UserUpdatedModelName(index: Int, new_name: String)
   UserStoppedEditingName
   UserStartedEditingName(index: Int)
@@ -213,10 +214,9 @@ fn warband_creation_view(
 fn add_model_view() -> Element(Msg) {
   ui.stack(
     [],
-    list.map(data.species, fn(species) {
-      ui.button([event.on_click(UserAddedModel(species))], [
-        element.text(species),
-      ])
+    list.map(data.species() |> dict.to_list, fn(pair) {
+      let #(name, species) = pair
+      ui.button([event.on_click(UserAddedModel(species))], [element.text(name)])
     }),
   )
 }
@@ -305,7 +305,7 @@ fn model_view(model: Model, index: Int, editing_name: Bool) -> Element(Msg) {
       ),
       html.br([]),
       element.text("Species: "),
-      ui.tag([], [element.text(model.species)]),
+      ui.tag([], [element.text(model.species.name)]),
       element.text(" Name: "),
       name_element,
     ],
