@@ -1,5 +1,4 @@
 export function focusElement(id) {
-  console.log("Focus");
   let element = document.getElementById(id);
   if (element === null) {
     return;

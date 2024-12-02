@@ -1,7 +1,7 @@
 import data
-import gleam/io
 import gleam/list
 import gleam/option.{type Option, None, Some}
+import gleam/result
 import lustre
 import lustre/attribute
 import lustre/effect.{type Effect}
@@ -9,6 +9,7 @@ import lustre/element.{type Element}
 import lustre/element/html
 import lustre/event
 import lustre/ui
+import util
 import warband.{type Model, type Warband, Warband}
 
 pub fn main() {
@@ -43,6 +44,7 @@ type Msg {
   UserUpdatedModelName(index: Int, new_name: String)
   UserStoppedEditingName
   UserStartedEditingName(index: Int)
+  UserChangedModelPosition(from: Int, to: Int)
 }
 
 const name_input_id = "model-name-input"
@@ -63,7 +65,7 @@ fn update(state: State, msg: Msg) -> #(State, Effect(Msg)) {
         warband: Warband(
           ..warband,
           models: warband.models
-            |> update_index(at: index, with: fn(model) {
+            |> util.update_index(at: index, with: fn(model) {
               warband.Model(..model, name: new_name)
             }),
         ),
@@ -77,7 +79,7 @@ fn update(state: State, msg: Msg) -> #(State, Effect(Msg)) {
           menu: WarbandCreation(Some(last_model)),
           warband: Warband(
             ..warband,
-            models: warband.models |> append(warband.model(species)),
+            models: warband.models |> util.append(warband.model(species)),
             model_count: warband.model_count + 1,
           ),
         ),
@@ -96,30 +98,25 @@ fn update(state: State, msg: Msg) -> #(State, Effect(Msg)) {
         request_animation_frame(fn() { focus(name_input_id) })
       }),
     )
-  }
-}
-
-fn update_index(
-  in list: List(element),
-  at index: Int,
-  with update_fn: fn(element) -> element,
-) -> List(element) {
-  list.index_map(list, fn(element, i) {
-    case i == index {
-      False -> element
-      True -> update_fn(element)
+    UserChangedModelPosition(from:, to:) -> {
+      #(
+        State(
+          ..state,
+          warband: Warband(
+            ..warband,
+            models: util.swap(warband.models, from, to)
+              |> result.unwrap(warband.models),
+          ),
+        ),
+        effect.none(),
+      )
     }
-  })
-}
-
-fn append(to list: List(element), append value: element) -> List(element) {
-  list |> list.reverse |> list.prepend(value) |> list.reverse
+  }
 }
 
 // ------------------------- VIEW -------------------------
 
 fn view(state: State) -> Element(Msg) {
-  io.debug("view")
   let styles = [#("width", "100vw"), #("height", "100vh"), #("padding", "1rem")]
   let content = case state.menu {
     AddModel -> add_model_view()
@@ -200,6 +197,31 @@ fn model_view(model: Model, index: Int, editing_name: Bool) -> Element(Msg) {
       ])
   }
 
+  let rank = case index {
+    0 -> html.span([], [ui.tag([], [element.text("Leader")]), html.br([])])
+    1 ->
+      html.span([], [
+        ui.tag([], [element.text("Second")]),
+        ui.button(
+          [event.on_click(UserChangedModelPosition(from: index, to: 0))],
+          [element.text("Make Leader")],
+        ),
+        html.br([]),
+      ])
+    _ ->
+      html.span([], [
+        ui.button(
+          [event.on_click(UserChangedModelPosition(from: index, to: 0))],
+          [element.text("Make Leader")],
+        ),
+        ui.button(
+          [event.on_click(UserChangedModelPosition(from: index, to: 1))],
+          [element.text("Make Second")],
+        ),
+        html.br([]),
+      ])
+  }
+
   ui.box(
     [
       attribute.style([
@@ -209,9 +231,10 @@ fn model_view(model: Model, index: Int, editing_name: Bool) -> Element(Msg) {
       ]),
     ],
     [
+      rank,
       element.text("Species: "),
       ui.tag([], [element.text(model.species)]),
-      element.text("Name: "),
+      element.text(" Name: "),
       name_element,
     ],
   )
