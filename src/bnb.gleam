@@ -45,6 +45,7 @@ type Msg {
   UserStoppedEditingName
   UserStartedEditingName(index: Int)
   UserChangedModelPosition(from: Int, to: Int)
+  UserRemovedModel(index: Int)
 }
 
 const name_input_id = "model-name-input"
@@ -106,6 +107,18 @@ fn update(state: State, msg: Msg) -> #(State, Effect(Msg)) {
             ..warband,
             models: util.swap(warband.models, from, to)
               |> result.unwrap(warband.models),
+          ),
+        ),
+        effect.none(),
+      )
+    }
+    UserRemovedModel(index) -> {
+      #(
+        State(
+          ..state,
+          warband: Warband(
+            ..warband,
+            models: util.remove(warband.models, index),
           ),
         ),
         effect.none(),
@@ -198,27 +211,34 @@ fn model_view(model: Model, index: Int, editing_name: Bool) -> Element(Msg) {
   }
 
   let rank = case index {
-    0 -> html.span([], [ui.tag([], [element.text("Leader")]), html.br([])])
+    0 -> ui.tag([], [element.text("Leader")])
     1 ->
       html.span([], [
         ui.tag([], [element.text("Second")]),
         ui.button(
-          [event.on_click(UserChangedModelPosition(from: index, to: 0))],
+          [
+            event.on_click(UserChangedModelPosition(from: index, to: 0)),
+            attribute.style([#("font-size", "0.8em"), #("padding", "2px")]),
+          ],
           [element.text("Make Leader")],
         ),
-        html.br([]),
       ])
     _ ->
       html.span([], [
         ui.button(
-          [event.on_click(UserChangedModelPosition(from: index, to: 0))],
+          [
+            event.on_click(UserChangedModelPosition(from: index, to: 0)),
+            attribute.style([#("font-size", "0.8em"), #("padding", "2px")]),
+          ],
           [element.text("Make Leader")],
         ),
         ui.button(
-          [event.on_click(UserChangedModelPosition(from: index, to: 1))],
+          [
+            event.on_click(UserChangedModelPosition(from: index, to: 1)),
+            attribute.style([#("font-size", "0.8em"), #("padding", "2px")]),
+          ],
           [element.text("Make Second")],
         ),
-        html.br([]),
       ])
   }
 
@@ -232,6 +252,14 @@ fn model_view(model: Model, index: Int, editing_name: Bool) -> Element(Msg) {
     ],
     [
       rank,
+      ui.button(
+        [
+          event.on_click(UserRemovedModel(index:)),
+          attribute.style([#("font-size", "0.9em"), #("padding", "0")]),
+        ],
+        [element.text("🗑️")],
+      ),
+      html.br([]),
       element.text("Species: "),
       ui.tag([], [element.text(model.species)]),
       element.text(" Name: "),

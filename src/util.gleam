@@ -18,6 +18,17 @@ pub fn append(to list: List(element), append value: element) -> List(element) {
   list |> list.append([value])
 }
 
+pub fn remove(from list: List(element), at index: Int) {
+  list
+  |> list.index_map(fn(element, i) { #(element, i) })
+  |> list.filter_map(fn(pair) {
+    case pair.1 == index {
+      True -> Error(Nil)
+      False -> Ok(pair.0)
+    }
+  })
+}
+
 pub fn swap(list: List(element), from, to) {
   use from_value <- result.try(at(list, from))
   use to_value <- result.map(at(list, to))
