@@ -1,8 +1,10 @@
+import bnb/util
 import bnb/warband.{type Warband, Warband}
 import bnb/warband/allegiance.{type Allegiance}
 import bnb/warband/model.{type Model, Model}
 import bnb/warband/species.{type Species}
 import gleam/dict
+import gleam/int
 import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/result
@@ -13,7 +15,6 @@ import lustre/element.{type Element}
 import lustre/element/html
 import lustre/event
 import lustre/ui
-import bnb/util
 
 pub fn main() {
   let app = lustre.application(init, update, view)
@@ -88,6 +89,7 @@ fn update(state: State, msg: Msg) -> #(State, Effect(Msg)) {
             ..warband,
             models: warband.models |> util.append(model.new(species)),
             model_count: warband.model_count + 1,
+            pennies: warband.pennies - species.cost,
           ),
         ),
         effect.from(fn(dispatch) {
@@ -119,13 +121,17 @@ fn update(state: State, msg: Msg) -> #(State, Effect(Msg)) {
       )
     }
     UserRemovedModel(index) -> {
+      let #(models, cost) =
+        util.remove(warband.models, index)
+        |> result.map(fn(pair) {
+          let #(models, removed) = pair
+          #(models, removed.species.cost)
+        })
+        |> result.unwrap(#(warband.models, 0))
       #(
         State(
           ..state,
-          warband: Warband(
-            ..warband,
-            models: util.remove(warband.models, index),
-          ),
+          warband: Warband(..warband, models:, pennies: warband.pennies + cost),
         ),
         effect.none(),
       )
@@ -209,7 +215,15 @@ fn warband_creation_view(
 
   ui.stack(
     [],
-    list.flatten([[warband_name, warband_allegiance], models_ui, [add_model]]),
+    list.flatten([
+      [
+        warband_name,
+        warband_allegiance,
+        element.text("Pennies: " <> int.to_string(warband.pennies)),
+      ],
+      models_ui,
+      [add_model],
+    ]),
   )
 }
 
