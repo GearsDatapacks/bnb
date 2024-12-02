@@ -1,4 +1,7 @@
-import data
+import bnb/warband.{type Warband, Warband}
+import bnb/warband/allegiance.{type Allegiance}
+import bnb/warband/model.{type Model, Model}
+import bnb/warband/species.{type Species}
 import gleam/dict
 import gleam/list
 import gleam/option.{type Option, None, Some}
@@ -10,8 +13,7 @@ import lustre/element.{type Element}
 import lustre/element/html
 import lustre/event
 import lustre/ui
-import util
-import warband.{type Model, type Warband, Warband, allegiances, type Species}
+import bnb/util
 
 pub fn main() {
   let app = lustre.application(init, update, view)
@@ -48,7 +50,7 @@ type Msg {
   UserStartedEditingName(index: Int)
   UserChangedModelPosition(from: Int, to: Int)
   UserRemovedModel(index: Int)
-  UserChangedAllegiance(warband.Allegiance)
+  UserChangedAllegiance(Allegiance)
 }
 
 const name_input_id = "model-name-input"
@@ -71,7 +73,7 @@ fn update(state: State, msg: Msg) -> #(State, Effect(Msg)) {
           ..warband,
           models: warband.models
             |> util.update_index(at: index, with: fn(model) {
-              warband.Model(..model, name: new_name)
+              Model(..model, name: new_name)
             }),
         ),
       ),
@@ -84,7 +86,7 @@ fn update(state: State, msg: Msg) -> #(State, Effect(Msg)) {
           menu: WarbandCreation(Some(last_model)),
           warband: Warband(
             ..warband,
-            models: warband.models |> util.append(warband.model(species)),
+            models: warband.models |> util.append(model.new(species)),
             model_count: warband.model_count + 1,
           ),
         ),
@@ -174,16 +176,16 @@ fn warband_creation_view(
           ]),
           event.on_input(fn(string) {
             string
-            |> warband.allegiance_from_string
-            |> result.unwrap(warband.Royalist)
+            |> allegiance.from_string
+            |> result.unwrap(allegiance.Royalist)
             |> UserChangedAllegiance
           }),
         ],
-        allegiances
+        allegiance.allegiances
           |> list.map(fn(allegiance) {
             html.option(
               [attribute.selected(allegiance == warband.allegiance)],
-              allegiance |> warband.allegiance_string,
+              allegiance |> allegiance.to_string,
             )
           }),
       ),
@@ -214,7 +216,7 @@ fn warband_creation_view(
 fn add_model_view() -> Element(Msg) {
   ui.stack(
     [],
-    list.map(data.species() |> dict.to_list, fn(pair) {
+    list.map(species.species() |> dict.to_list, fn(pair) {
       let #(name, species) = pair
       ui.button([event.on_click(UserAddedModel(species))], [element.text(name)])
     }),

@@ -1,7 +1,10 @@
 import gleam/dict.{type Dict}
 import gleam/list
-import lazy.{Lazy}
-import warband.{type Species, Species}
+import bnb/lazy.{Lazy}
+
+pub type Species {
+  Species(cost: Int, name: String)
+}
 
 const species_registry = [
   Species(cost: 53, name: "Hare"),

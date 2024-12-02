@@ -1,4 +1,4 @@
-import { Lazy } from "./lazy.mjs";
+import { Lazy } from "./bnb/lazy.mjs";
 
 export function focusElement(id) {
   let element = document.getElementById(id);
