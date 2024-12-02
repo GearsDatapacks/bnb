@@ -10,7 +10,7 @@ import lustre/element/html
 import lustre/event
 import lustre/ui
 import util
-import warband.{type Model, type Warband, Warband}
+import warband.{type Model, type Warband, Warband, allegiances}
 
 pub fn main() {
   let app = lustre.application(init, update, view)
@@ -46,6 +46,7 @@ type Msg {
   UserStartedEditingName(index: Int)
   UserChangedModelPosition(from: Int, to: Int)
   UserRemovedModel(index: Int)
+  UserChangedAllegiance(warband.Allegiance)
 }
 
 const name_input_id = "model-name-input"
@@ -124,6 +125,10 @@ fn update(state: State, msg: Msg) -> #(State, Effect(Msg)) {
         effect.none(),
       )
     }
+    UserChangedAllegiance(allegiance) -> #(
+      State(..state, warband: Warband(..warband, allegiance:)),
+      effect.none(),
+    )
   }
 }
 
@@ -143,7 +148,7 @@ fn warband_creation_view(
   warband: Warband,
   editing_name: Option(Int),
 ) -> Element(Msg) {
-  let warband_ui =
+  let warband_name =
     ui.field(
       [],
       [element.text("Enter your warband's name:")],
@@ -151,6 +156,34 @@ fn warband_creation_view(
         attribute.value(warband.name),
         event.on_input(UserUpdatedWarbandName),
       ]),
+      [],
+    )
+
+  let warband_allegiance =
+    ui.field(
+      [],
+      [element.text("Choose your allegiance")],
+      html.select(
+        [
+          attribute.style([
+            #("padding", "0.5em"),
+            #("background-color", "var(--element-background)"),
+          ]),
+          event.on_input(fn(string) {
+            string
+            |> warband.allegiance_from_string
+            |> result.unwrap(warband.Royalist)
+            |> UserChangedAllegiance
+          }),
+        ],
+        allegiances
+          |> list.map(fn(allegiance) {
+            html.option(
+              [attribute.selected(allegiance == warband.allegiance)],
+              allegiance |> warband.allegiance_string,
+            )
+          }),
+      ),
       [],
     )
 
@@ -169,7 +202,10 @@ fn warband_creation_view(
       [element.text("Add a model")],
     )
 
-  ui.stack([], list.flatten([[warband_ui], models_ui, [add_model]]))
+  ui.stack(
+    [],
+    list.flatten([[warband_name, warband_allegiance], models_ui, [add_model]]),
+  )
 }
 
 fn add_model_view() -> Element(Msg) {

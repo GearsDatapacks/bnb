@@ -8,5 +8,6 @@ pub const species = [
   "Mole",
   "Rabbit",
   "Fox",
-  "Otter"
+  "Otter",
+  "Hedgehog"
 ]
