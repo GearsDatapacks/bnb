@@ -1,6 +1,6 @@
+import bnb/lazy.{Lazy}
 import gleam/dict.{type Dict}
 import gleam/list
-import bnb/lazy.{Lazy}
 
 pub type Species {
   Species(cost: Int, name: String)

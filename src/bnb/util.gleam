@@ -36,7 +36,11 @@ fn do_remove(
     [#(element, i), ..rest] ->
       case i == index {
         False -> do_remove(rest, index, [element, ..acc])
-        True -> Ok(#(list.append(list.reverse(acc), rest |> list.map(pair.first)), element))
+        True ->
+          Ok(#(
+            list.append(list.reverse(acc), rest |> list.map(pair.first)),
+            element,
+          ))
       }
   }
 }
