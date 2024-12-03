@@ -132,7 +132,12 @@ fn update(state: State, msg: Msg) -> #(State, Effect(Msg)) {
       #(
         State(
           ..state,
-          warband: Warband(..warband, models:, pennies: warband.pennies + cost),
+          warband: Warband(
+            ..warband,
+            models:,
+            pennies: warband.pennies + cost,
+            model_count: warband.model_count - 1,
+          ),
         ),
         effect.none(),
       )
@@ -210,7 +215,7 @@ fn warband_creation_view(
     ui.button(
       [
         event.on_click(UserClickedAddModel),
-        attribute.disabled(warband.model_count == warband.max_models),
+        attribute.disabled(warband.model_count >= warband.max_models),
       ],
       [element.text("Add a model")],
     )
