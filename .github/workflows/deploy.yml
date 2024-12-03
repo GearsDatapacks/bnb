@@ -31,9 +31,12 @@ jobs:
         run: |
           mkdir -p dist
           cp index.html dist/index.html
+          cp style.css dist/style.css
+          cp build/dev/javascript/lustre_ui/priv/static/lustre-ui.css dist/lustre-ui.css
           cp -r priv dist/priv
-      - name: Update path in index.html to use minified app
+      - name: Update paths in index.html
         run: sed -i 's|/priv/static/bnb.mjs|/bnb/priv/static/bnb.min.mjs|' dist/index.html
+        run: sed -i 's|build/dev/javascript/lustre_ui/priv/static/lustre-ui.css|lustre-ui.css|' dist/index.html
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact
