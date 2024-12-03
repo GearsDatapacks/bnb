@@ -52,6 +52,7 @@ type Msg {
   UserChangedModelPosition(from: Int, to: Int)
   UserRemovedModel(index: Int)
   UserChangedAllegiance(Allegiance)
+  UserSwitchedMenu(Menu)
 }
 
 const name_input_id = "model-name-input"
@@ -140,6 +141,7 @@ fn update(state: State, msg: Msg) -> #(State, Effect(Msg)) {
       State(..state, warband: Warband(..warband, allegiance:)),
       effect.none(),
     )
+    UserSwitchedMenu(menu) -> #(State(..state, menu:), effect.none())
   }
 }
 
@@ -148,7 +150,7 @@ fn update(state: State, msg: Msg) -> #(State, Effect(Msg)) {
 fn view(state: State) -> Element(Msg) {
   let styles = [#("width", "100vw"), #("height", "100vh"), #("padding", "1rem")]
   let content = case state.menu {
-    AddModel -> add_model_view()
+    AddModel -> add_model_view(state.warband.pennies)
     WarbandCreation(editing_name) ->
       warband_creation_view(state.warband, editing_name)
   }
@@ -227,14 +229,22 @@ fn warband_creation_view(
   )
 }
 
-fn add_model_view() -> Element(Msg) {
-  ui.stack(
-    [],
-    list.map(species.species() |> dict.to_list, fn(pair) {
+fn add_model_view(pennies: Int) -> Element(Msg) {
+  ui.stack([], [
+    ui.button([event.on_click(UserSwitchedMenu(WarbandCreation(None)))], [
+      element.text("Cancel"),
+    ]),
+    ..list.map(species.species() |> dict.to_list, fn(pair) {
       let #(name, species) = pair
-      ui.button([event.on_click(UserAddedModel(species))], [element.text(name)])
-    }),
-  )
+      ui.button(
+        [
+          event.on_click(UserAddedModel(species)),
+          attribute.disabled(species.cost > pennies),
+        ],
+        [element.text(name)],
+      )
+    })
+  ])
 }
 
 fn model_view(model: Model, index: Int, editing_name: Bool) -> Element(Msg) {
